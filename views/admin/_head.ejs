@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#2D1B69">
+    <title>Admin — Vote FIVTA</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site site-admin">
+    <div class="site-admin-titre">
+        <h1>Fédération Ivoirienne de Tir à l'Arc</h1>
+        <p>Dashboard administrateur</p>
+    </div>
+    <div class="admin-actions-entete">
+        <form method="POST" action="/admin/resultats/reinitialiser-tout"
+              onsubmit="return confirm('Ceci efface DÉFINITIVEMENT tous les votes enregistrés et remet tous les électeurs à zéro. Continuer ?') && confirm('Confirmez une seconde fois : êtes-vous certain(e) ? Cette action est irréversible.');">
+            <button type="submit" class="bouton-danger-petit">Réinitialiser tout</button>
+        </form>
+        <form method="POST" action="/admin/logout" class="admin-deconnexion">
+            <span class="admin-utilisateur"><%= adminNom %></span>
+            <button type="submit" class="lien-deconnexion">Déconnexion</button>
+        </form>
+    </div>
+</header>
+<div class="page page-admin">
+    <nav class="admin-nav">
+        <a href="/admin/election" class="admin-tab <%= page === 'election' ? 'actif' : '' %>">Élection</a>
+        <a href="/admin/candidats" class="admin-tab <%= page === 'candidats' ? 'actif' : '' %>">Candidatures</a>
+        <a href="/admin/electeurs" class="admin-tab <%= page === 'electeurs' ? 'actif' : '' %>">Électeurs</a>
+        <a href="/admin/resultats" class="admin-tab <%= page === 'resultats' ? 'actif' : '' %>">Résultats</a>
+    </nav>

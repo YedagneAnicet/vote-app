@@ -1,0 +1,116 @@
+<%- include('_head', { page: 'candidats' }) %>
+
+<div class="card">
+    <div class="admin-card-entete">
+        <div class="carte-titre">
+            <div class="carte-eyebrow">Gestion</div>
+            <h2>Candidatures</h2>
+            <p><%= candidats.length %> candidat(s) enregistré(s).</p>
+        </div>
+        <button type="button" class="bouton-ajouter" onclick="ouvrirAjoutCandidat()" aria-label="Ajouter une candidature">+</button>
+    </div>
+
+    <div class="tableau-propre-conteneur">
+        <table class="tableau-propre">
+            <thead>
+            <tr>
+                <th>Candidat</th>
+                <th>Club</th>
+                <th>Statut</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <% candidats.forEach(function(c) { %>
+                <tr>
+                    <td data-label="Candidat">
+              <span class="cellule-personne">
+                  <% if (c.photoUrl) { %>
+                      <img src="<%= c.photoUrl %>" alt="" class="mini-photo">
+                  <% } else { %>
+                      <span class="mini-photo mini-photo-vide"></span>
+                  <% } %>
+                  <%= c.prenom %> <%= c.nom %>
+              </span>
+                    </td>
+                    <td data-label="Club"><%= c.club || '—' %></td>
+                    <td data-label="Statut">
+                        <span class="badge <%= c.valide ? 'badge-vert' : 'badge-gris' %>"><%= c.valide ? 'Active' : 'Désactivée' %></span>
+                    </td>
+                    <td data-label="">
+                        <div class="cellule-actions">
+                            <button type="button" class="bouton-icone" title="Modifier"
+                                    onclick='ouvrirModifCandidat(<%- JSON.stringify({id: c.id, nom: c.nom, prenom: c.prenom, club: c.club, photoUrl: c.photoUrl}) %>)'>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <form method="POST" action="/admin/candidats/<%= c.id %>/basculer">
+                                <button type="submit" class="bouton-mini"><%= c.valide ? 'Désactiver' : 'Activer' %></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modale-overlay" id="modaleCandidat">
+    <div class="modale">
+        <div class="modale-titre" id="modaleCandidatTitre">Ajouter une candidature</div>
+        <form method="POST" id="formCandidat" action="/admin/candidats">
+            <label for="cNom">Nom</label>
+            <input type="text" id="cNom" name="nom" required>
+
+            <label for="cPrenom">Prénom</label>
+            <input type="text" id="cPrenom" name="prenom" required>
+
+            <label for="cClub">Club</label>
+            <input type="text" id="cClub" name="club">
+
+            <label for="cPhoto">Chemin de la photo</label>
+            <input type="text" id="cPhoto" name="photoUrl" placeholder="/images/candidats/nom.png">
+
+            <div class="modale-actions">
+                <button type="submit" class="modale-confirmer">Enregistrer</button>
+                <button type="button" class="modale-annuler" onclick="fermerModaleCandidat()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+	var overlayCandidat = document.getElementById('modaleCandidat');
+	var formCandidat = document.getElementById('formCandidat');
+	var titreCandidat = document.getElementById('modaleCandidatTitre');
+
+	function ouvrirAjoutCandidat() {
+		formCandidat.reset();
+		formCandidat.action = '/admin/candidats';
+		titreCandidat.textContent = 'Ajouter une candidature';
+		overlayCandidat.classList.add('ouverte');
+	}
+
+	function ouvrirModifCandidat(c) {
+		formCandidat.action = '/admin/candidats/' + c.id;
+		titreCandidat.textContent = 'Modifier la candidature';
+		document.getElementById('cNom').value = c.nom || '';
+		document.getElementById('cPrenom').value = c.prenom || '';
+		document.getElementById('cClub').value = c.club || '';
+		document.getElementById('cPhoto').value = c.photoUrl || '';
+		overlayCandidat.classList.add('ouverte');
+	}
+
+	function fermerModaleCandidat() {
+		overlayCandidat.classList.remove('ouverte');
+	}
+
+	overlayCandidat.addEventListener('click', function (e) {
+		if (e.target === overlayCandidat) fermerModaleCandidat();
+	});
+</script>
+
+<%- include('_foot') %>

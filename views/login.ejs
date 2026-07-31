@@ -1,0 +1,19 @@
+<%- include('partials/head') %>
+
+<div class="card">
+  <h2>Connexion électeur</h2>
+  <p>Utilisez le code d'accès reçu par SMS ou via Whatsapp.</p>
+
+  <% if (erreur) { %>
+    <div class="erreur"><%= erreur %></div>
+  <% } %>
+
+  <form method="POST" action="/login">
+    <label for="codeAcces">Code d'accès</label>
+    <input type="text" id="codeAcces" name="codeAcces" required autofocus>
+
+    <button type="submit">Se connecter</button>
+  </form>
+</div>
+
+<%- include('partials/foot') %>
