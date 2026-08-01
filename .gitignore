@@ -3,5 +3,4 @@ node_modules/
 db/vote.sqlite
 db/vote.sqlite-wal
 db/vote.sqlite-shm
-scripts/codes-generes.csv
-scripts/electeurs.csv
+scripts/*.csv
