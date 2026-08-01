@@ -1,0 +1,153 @@
+<%- include('partials/head') %>
+
+<% if (!cloture) { %>
+
+    <div class="card confirmation">
+        <div class="icone-attente">⏳</div>
+        <h2><%= enCours ? 'Le vote est en cours' : "Le vote n'a pas encore commencé" %></h2>
+        <p>
+            <% if (election) { %><%= election.titre %><br>
+            <% } %>
+            Les résultats et les tendances seront visibles ici dès la clôture du scrutin.
+        </p>
+    </div>
+
+<% } else { %>
+
+    <div class="card">
+        <h2>Tendances du scrutin</h2>
+        <p>
+            <% if (election) { %><%= election.titre %><br>
+            <% } %>
+            Scrutin clôturé — résultats définitifs.
+        </p>
+
+        <% if (totalVotants === 0) { %>
+            <div class="tendance-vide">Aucun vote n'a été enregistré.</div>
+        <% } else { %>
+            <canvas id="graphiqueTendances" width="800" height="360" class="graphique-tendances"></canvas>
+            <div class="tendance-legende" id="tendanceLegende"></div>
+        <% } %>
+
+        <ul class="stats-liste">
+            <li>Votes enregistrés : <strong><%= totalVotants %></strong></li>
+            <li>Électeurs inscrits : <strong><%= totalElecteurs %></strong></li>
+            <li>Taux de participation : <strong><%= tauxParticipation %> %</strong></li>
+        </ul>
+
+        <% if (enTete && enTete.voix > 0) { %>
+            <div class="leader-carte">
+                <div class="leader-label">Vainqueur</div>
+                <div class="leader-contenu">
+                    <% if (enTete.photoUrl) { %>
+                        <img src="<%= enTete.photoUrl %>" alt="<%= enTete.prenom %> <%= enTete.nom %>" class="leader-photo">
+                    <% } %>
+                    <div>
+                        <div class="leader-nom"><%= enTete.prenom %> <%= enTete.nom %></div>
+                        <div class="leader-score"><%= enTete.voix %> voix — <%= enTete.pourcentage %> %</div>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+
+        <ul class="classement">
+            <% rows.forEach(function(r, i) { %>
+                <li class="classement-item">
+                    <span class="classement-rang">#<%= i + 1 %></span>
+                    <% if (r.photoUrl) { %>
+                        <img src="<%= r.photoUrl %>" alt="" class="classement-photo">
+                    <% } %>
+                    <span class="classement-nom"><%= r.prenom %> <%= r.nom %></span>
+                    <span class="classement-score"><%= r.voix %> voix <span class="classement-pourcentage">(<%= r.pourcentage %> %)</span></span>
+                </li>
+            <% }); %>
+            <li class="classement-item classement-item-blanc">
+                <span class="classement-rang">—</span>
+                <span class="classement-nom">Votes blancs</span>
+                <span class="classement-score"><%= blancs %> voix <span class="classement-pourcentage">(<%= pourcentageBlancs %> %)</span></span>
+            </li>
+        </ul>
+    </div>
+
+    <% if (totalVotants > 0) { %>
+        <script>
+			(function () {
+				var series = <%- JSON.stringify(series) %>;
+				var serieBlanc = <%- JSON.stringify(serieBlanc) %>;
+				var totalPoints = <%- totalPoints %>;
+
+				var palette = ['#2D1B69', '#F5A623', '#228B22', '#4A3494', '#C0392B', '#0E7C86', '#9B5DE5', '#00A5CF'];
+				var toutesLesSeries = series.concat([serieBlanc]);
+				toutesLesSeries.forEach(function (s, i) {
+					s.couleur = i === toutesLesSeries.length - 1 ? '#B8B4C9' : palette[i % palette.length];
+				});
+
+				var canvas = document.getElementById('graphiqueTendances');
+				var ctx = canvas.getContext('2d');
+				var largeur = canvas.width, hauteur = canvas.height;
+				var marge = {haut: 16, bas: 30, gauche: 36, droite: 16};
+				var zoneL = largeur - marge.gauche - marge.droite;
+				var zoneH = hauteur - marge.haut - marge.bas;
+
+				var maxValeur = 1;
+				toutesLesSeries.forEach(function (s) {
+					s.valeurs.forEach(function (v) {
+						if (v > maxValeur) maxValeur = v;
+					});
+				});
+
+				function x(i) {
+					return marge.gauche + (i / Math.max(1, totalPoints - 1)) * zoneL;
+				}
+
+				function y(v) {
+					return marge.haut + zoneH - (v / maxValeur) * zoneH;
+				}
+
+				ctx.strokeStyle = '#EDEBF7';
+				ctx.lineWidth = 1;
+				ctx.fillStyle = '#635F73';
+				ctx.font = '11px Outfit, sans-serif';
+				var pasGrille = Math.max(1, Math.ceil(maxValeur / 5));
+				for (var g = 0; g <= maxValeur; g += pasGrille) {
+					var yy = y(g);
+					ctx.beginPath();
+					ctx.moveTo(marge.gauche, yy);
+					ctx.lineTo(largeur - marge.droite, yy);
+					ctx.stroke();
+					ctx.fillText(g, 4, yy + 3);
+				}
+
+				toutesLesSeries.forEach(function (s) {
+					ctx.beginPath();
+					ctx.strokeStyle = s.couleur;
+					ctx.lineWidth = 2.5;
+					ctx.lineJoin = 'round';
+					s.valeurs.forEach(function (v, i) {
+						var px = x(i), py = y(v);
+						if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+					});
+					ctx.stroke();
+
+					var dernier = s.valeurs[s.valeurs.length - 1];
+					ctx.beginPath();
+					ctx.fillStyle = s.couleur;
+					ctx.arc(x(s.valeurs.length - 1), y(dernier), 4, 0, Math.PI * 2);
+					ctx.fill();
+				});
+
+				var legende = document.getElementById('tendanceLegende');
+				toutesLesSeries.forEach(function (s) {
+					var item = document.createElement('div');
+					item.className = 'legende-item';
+					var dernier = s.valeurs[s.valeurs.length - 1];
+					item.innerHTML = '<span class="legende-puce" style="background:' + s.couleur + '"></span>' + s.nom + ' (' + dernier + ')';
+					legende.appendChild(item);
+				});
+			})();
+        </script>
+    <% } %>
+
+<% } %>
+
+<%- include('partials/foot') %>

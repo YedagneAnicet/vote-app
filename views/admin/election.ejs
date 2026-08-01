@@ -1,0 +1,41 @@
+<%- include('_head', { page: 'election' }) %>
+
+<div class="card">
+    <div class="carte-titre">
+        <div class="carte-eyebrow">Paramètres</div>
+        <h2>Élection</h2>
+        <p>Configurez le titre, les dates du scrutin et son statut.</p>
+    </div>
+
+    <% if (erreur) { %>
+        <div class="erreur"><%= erreur %></div>
+    <% } %>
+
+    <form method="POST" action="/admin/election">
+        <label for="titre">Titre de l'élection</label>
+        <input type="text" id="titre" name="titre" value="<%= election ? election.titre : '' %>" required>
+
+        <div class="champs-grille">
+            <div>
+                <label for="dateOuverture">Ouverture du vote</label>
+                <input type="datetime-local" id="dateOuverture" name="dateOuverture"
+                       value="<%= election ? election.dateOuverture.slice(0, 16) : '' %>" required>
+            </div>
+            <div>
+                <label for="dateCloture">Clôture du vote</label>
+                <input type="datetime-local" id="dateCloture" name="dateCloture"
+                       value="<%= election ? election.dateCloture.slice(0, 16) : '' %>" required>
+            </div>
+        </div>
+
+        <label for="statut">Statut</label>
+        <select id="statut" name="statut" class="champ-select">
+            <option value="ouverte" <%= election && election.statut === 'ouverte' ? 'selected' : '' %>>Ouverte (respecte les dates ci-dessus)</option>
+            <option value="fermee" <%= election && election.statut === 'fermee' ? 'selected' : '' %>>Fermée manuellement (bloque le vote quelles que soient les dates)</option>
+        </select>
+
+        <button type="submit">Enregistrer</button>
+    </form>
+</div>
+
+<%- include('_foot') %>
