@@ -1,137 +1,132 @@
 const bcrypt = require("bcryptjs");
-const db = require("../db/database");
+const { db } = require("../db/database");
 
-function authentifierAdmin(identifiant, motDePasse) {
-	const admin = db.prepare("SELECT * FROM admins WHERE identifiant = ?").get((identifiant || "").trim());
-	if (!admin) return {succes: false};
-	const valide = bcrypt.compareSync(motDePasse || "", admin.motDePasseHache);
-	if (!valide) return {succes: false};
-	return {succes: true, admin};
+async function authentifierAdmin(identifiant, motDePasse) {
+  const r = await db.execute({
+    sql: "SELECT * FROM admins WHERE identifiant = ?",
+    args: [(identifiant || "").trim()],
+  });
+  const admin = r.rows[0];
+  if (!admin) return { succes: false };
+  const valide = bcrypt.compareSync(motDePasse || "", admin.motDePasseHache);
+  if (!valide) return { succes: false };
+  return { succes: true, admin };
 }
 
 // --- Élection ---
-function getElectionAdmin() {
-	return db.prepare("SELECT * FROM election WHERE id = 1").get();
+async function getElectionAdmin() {
+  const r = await db.execute("SELECT * FROM election WHERE id = 1");
+  return r.rows[0] || null;
 }
 
-function modifierElection({ titre, dateOuverture, dateCloture, statut }) {
-	db.prepare(
-			`INSERT INTO election (id, titre, dateOuverture, dateCloture, statut)
-     VALUES (1, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       titre = excluded.titre,
-       dateOuverture = excluded.dateOuverture,
-       dateCloture = excluded.dateCloture,
-       statut = excluded.statut`
-	).run(
-			(titre || "").trim(),
-			(dateOuverture || "").trim(),
-			(dateCloture || "").trim(),
-			statut === "fermee" ? "fermee" : "ouverte"
-	);
+async function modifierElection({ titre, dateOuverture, dateCloture, statut }) {
+  await db.execute({
+    sql: `INSERT INTO election (id, titre, dateOuverture, dateCloture, statut)
+          VALUES (1, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            titre = excluded.titre,
+            dateOuverture = excluded.dateOuverture,
+            dateCloture = excluded.dateCloture,
+            statut = excluded.statut`,
+    args: [
+      (titre || "").trim(),
+      (dateOuverture || "").trim(),
+      (dateCloture || "").trim(),
+      statut === "fermee" ? "fermee" : "ouverte",
+    ],
+  });
 }
 
 // --- Candidats ---
-function listerCandidats() {
-	return db.prepare("SELECT * FROM candidats ORDER BY valide DESC, nom ASC").all();
+async function listerCandidats() {
+  const r = await db.execute("SELECT * FROM candidats ORDER BY valide DESC, nom ASC");
+  return r.rows;
 }
 
-function ajouterCandidat({nom, prenom, club, photoUrl}) {
-	db.prepare("INSERT INTO candidats (nom, prenom, club, photoUrl, valide) VALUES (?, ?, ?, ?, 1)").run(
-			(nom || "").trim().toUpperCase(),
-			(prenom || "").trim(),
-			(club || "").trim(),
-			(photoUrl || "").trim()
-	);
+async function ajouterCandidat({ nom, prenom, club, photoUrl }) {
+  await db.execute({
+    sql: "INSERT INTO candidats (nom, prenom, club, photoUrl, valide) VALUES (?, ?, ?, ?, 1)",
+    args: [(nom || "").trim().toUpperCase(), (prenom || "").trim(), (club || "").trim(), (photoUrl || "").trim()],
+  });
 }
 
-function basculerCandidat(id) {
-	db.prepare("UPDATE candidats SET valide = 1 - valide WHERE id = ?").run(id);
+async function basculerCandidat(id) {
+  await db.execute({ sql: "UPDATE candidats SET valide = 1 - valide WHERE id = ?", args: [id] });
 }
 
-function modifierCandidat(id, {nom, prenom, club, photoUrl}) {
-	db.prepare("UPDATE candidats SET nom = ?, prenom = ?, club = ?, photoUrl = ? WHERE id = ?").run(
-			(nom || "").trim().toUpperCase(),
-			(prenom || "").trim(),
-			(club || "").trim(),
-			(photoUrl || "").trim(),
-			id
-	);
+async function modifierCandidat(id, { nom, prenom, club, photoUrl }) {
+  await db.execute({
+    sql: "UPDATE candidats SET nom = ?, prenom = ?, club = ?, photoUrl = ? WHERE id = ?",
+    args: [(nom || "").trim().toUpperCase(), (prenom || "").trim(), (club || "").trim(), (photoUrl || "").trim(), id],
+  });
 }
 
 // --- Électeurs ---
-function listerElecteurs() {
-	return db
-			.prepare(
-					`SELECT e.id, e.numeroLicence, e.nom, e.prenom, e.telephone, e.codeAcces, e.aVote
-                     FROM electeurs e
-                     ORDER BY e.nom ASC, e.prenom ASC`
-			)
-			.all();
+async function listerElecteurs() {
+  const r = await db.execute(
+    "SELECT id, numeroLicence, nom, prenom, telephone, codeAcces, aVote FROM electeurs ORDER BY nom ASC, prenom ASC"
+  );
+  return r.rows;
 }
 
-function ajouterElecteur({numeroLicence, nom, prenom, dateNaissance, telephone}) {
-	const code = genererCodeUnique();
-	db.prepare(
-			`INSERT INTO electeurs (numeroLicence, nom, prenom, dateNaissance, telephone, codeAcces)
-             VALUES (?, ?, ?, ?, ?, ?)`
-	).run(
-			(numeroLicence || "").trim(),
-			(nom || "").trim().toUpperCase(),
-			(prenom || "").trim(),
-			(dateNaissance || "").trim(),
-			(telephone || "").trim(),
-			code
-	);
-	return code;
+async function genererCodeUnique() {
+  let code;
+  let existe = true;
+  while (existe) {
+    code = Math.floor(100000 + Math.random() * 900000).toString();
+    const r = await db.execute({ sql: "SELECT 1 FROM electeurs WHERE codeAcces = ?", args: [code] });
+    existe = r.rows.length > 0;
+  }
+  return code;
 }
 
-function modifierElecteur(id, {numeroLicence, nom, prenom, dateNaissance, telephone}) {
-	db.prepare(
-			`UPDATE electeurs
-             SET numeroLicence = ?,
-                 nom = ?,
-                 prenom = ?,
-                 dateNaissance = ?,
-                 telephone = ?
-             WHERE id = ?`
-	).run(
-			(numeroLicence || "").trim(),
-			(nom || "").trim().toUpperCase(),
-			(prenom || "").trim(),
-			(dateNaissance || "").trim(),
-			(telephone || "").trim(),
-			id
-	);
+async function ajouterElecteur({ numeroLicence, nom, prenom, dateNaissance, telephone }) {
+  const code = await genererCodeUnique();
+  await db.execute({
+    sql: `INSERT INTO electeurs (numeroLicence, nom, prenom, dateNaissance, telephone, codeAcces)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [
+      (numeroLicence || "").trim(),
+      (nom || "").trim().toUpperCase(),
+      (prenom || "").trim(),
+      (dateNaissance || "").trim(),
+      (telephone || "").trim(),
+      code,
+    ],
+  });
+  return code;
 }
 
-function genererCodeUnique() {
-	const existe = db.prepare("SELECT 1 FROM electeurs WHERE codeAcces = ?");
-	let code;
-	do {
-		code = Math.floor(100000 + Math.random() * 900000).toString();
-	} while (existe.get(code));
-	return code;
+async function modifierElecteur(id, { numeroLicence, nom, prenom, dateNaissance, telephone }) {
+  await db.execute({
+    sql: `UPDATE electeurs SET numeroLicence = ?, nom = ?, prenom = ?, dateNaissance = ?, telephone = ? WHERE id = ?`,
+    args: [
+      (numeroLicence || "").trim(),
+      (nom || "").trim().toUpperCase(),
+      (prenom || "").trim(),
+      (dateNaissance || "").trim(),
+      (telephone || "").trim(),
+      id,
+    ],
+  });
 }
 
-function reinitialiserScrutinComplet() {
-	// Remet TOUT à zéro : tous les bulletins, tout le journal de vote, tous les électeurs.
-	// À utiliser uniquement pour nettoyer des données de test avant l'ouverture réelle du scrutin.
-	db.prepare("DELETE FROM bulletins").run();
-	db.prepare("DELETE FROM journal_votes").run();
-	db.prepare("UPDATE electeurs SET aVote = 0").run();
+async function reinitialiserScrutinComplet() {
+  await db.execute("DELETE FROM bulletins");
+  await db.execute("DELETE FROM journal_votes");
+  await db.execute("UPDATE electeurs SET aVote = 0");
 }
 
 module.exports = {
-	authentifierAdmin,
-	listerCandidats,
-	ajouterCandidat,
-	basculerCandidat,
-	modifierCandidat,
-	listerElecteurs,
-	ajouterElecteur,
-	modifierElecteur,
-	reinitialiserScrutinComplet,
-	getElectionAdmin,
-	modifierElection
+  authentifierAdmin,
+  getElectionAdmin,
+  modifierElection,
+  listerCandidats,
+  ajouterCandidat,
+  basculerCandidat,
+  modifierCandidat,
+  listerElecteurs,
+  ajouterElecteur,
+  modifierElecteur,
+  reinitialiserScrutinComplet,
 };

@@ -1,58 +1,58 @@
 <%- include('partials/head') %>
 
 <div class="card">
-  <h2>Résultats du scrutin</h2>
-  <p>
-    <strong><%= totalVotants %></strong> vote(s) enregistré(s) sur <strong><%= totalElecteurs %></strong> électeurs inscrits
-    — <strong><%= tauxParticipation %> %</strong> de participation.
-  </p>
+    <h2>Résultats du scrutin</h2>
+    <p>
+        <strong><%= totalVotants %></strong> vote(s) enregistré(s) sur <strong><%= totalElecteurs %></strong> électeurs inscrits
+        — <strong><%= tauxParticipation %> %</strong> de participation.
+    </p>
 
-  <div class="stat-barre-globale">
-    <div class="stat-barre-globale-remplie" style="width: <%= tauxParticipation %>%;"></div>
-  </div>
-
-  <% if (enTete && enTete.voix > 0) { %>
-    <div class="leader-carte">
-      <div class="leader-label">En tête</div>
-      <div class="leader-contenu">
-        <% if (enTete.photoUrl) { %>
-          <img src="<%= enTete.photoUrl %>" alt="<%= enTete.prenom %> <%= enTete.nom %>" class="leader-photo">
-        <% } %>
-        <div>
-          <div class="leader-nom"><%= enTete.prenom %> <%= enTete.nom %></div>
-          <div class="leader-score"><%= enTete.voix %> voix — <%= enTete.pourcentage %> %</div>
-        </div>
-      </div>
+    <div class="stat-barre-globale">
+        <div class="stat-barre-globale-remplie" style="width: <%= tauxParticipation %>%;"></div>
     </div>
-  <% } %>
 
-  <div class="resultats-liste">
-    <% rows.forEach(function(r) { %>
-      <div class="resultat-ligne">
-        <div class="resultat-entete">
-          <span class="resultat-nom"><%= r.prenom %> <%= r.nom %></span>
-          <span class="resultat-chiffres"><%= r.voix %> voix · <%= r.pourcentage %> %</span>
+    <% if (enTete && enTete.voix > 0) { %>
+        <div class="leader-carte">
+            <div class="leader-label">En tête</div>
+            <div class="leader-contenu">
+                <% if (enTete.photoUrl) { %>
+                    <img src="<%= enTete.photoUrl %>" alt="<%= enTete.prenom %> <%= enTete.nom %>" class="leader-photo">
+                <% } %>
+                <div>
+                    <div class="leader-nom"><%= enTete.prenom %> <%= enTete.nom %></div>
+                    <div class="leader-score"><%= enTete.voix %> voix — <%= enTete.pourcentage %> %</div>
+                </div>
+            </div>
         </div>
-        <div class="resultat-barre">
-          <div class="resultat-barre-remplie" style="width: <%= r.pourcentage %>%;"></div>
-        </div>
-      </div>
-    <% }); %>
+    <% } %>
 
-    <div class="resultat-ligne resultat-blanc">
-      <div class="resultat-entete">
-        <span class="resultat-nom">Votes blancs</span>
-        <span class="resultat-chiffres"><%= blancs %> voix · <%= pourcentageBlancs %> %</span>
-      </div>
-      <div class="resultat-barre">
-        <div class="resultat-barre-remplie resultat-barre-blanc" style="width: <%= pourcentageBlancs %>%;"></div>
-      </div>
+    <div class="resultats-liste">
+        <% rows.forEach(function(r) { %>
+            <div class="resultat-ligne">
+                <div class="resultat-entete">
+                    <span class="resultat-nom"><%= r.prenom %> <%= r.nom %></span>
+                    <span class="resultat-chiffres"><%= r.voix %> voix · <%= r.pourcentage %> %</span>
+                </div>
+                <div class="resultat-barre">
+                    <div class="resultat-barre-remplie" style="width: <%= r.pourcentage %>%;"></div>
+                </div>
+            </div>
+        <% }); %>
+
+        <div class="resultat-ligne resultat-blanc">
+            <div class="resultat-entete">
+                <span class="resultat-nom">Votes blancs</span>
+                <span class="resultat-chiffres"><%= blancs %> voix · <%= pourcentageBlancs %> %</span>
+            </div>
+            <div class="resultat-barre">
+                <div class="resultat-barre-remplie resultat-barre-blanc" style="width: <%= pourcentageBlancs %>%;"></div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <p class="resultats-note">
-    Suffrages exprimés (hors votes blancs) : <strong><%= suffragesExprimes %></strong>
-  </p>
+    <p class="resultats-note">
+        Suffrages exprimés (hors votes blancs) : <strong><%= suffragesExprimes %></strong>
+    </p>
 </div>
 
 <%- include('partials/foot') %>

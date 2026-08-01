@@ -1,92 +1,92 @@
 <%- include('partials/head') %>
 
 <div class="card">
-  <h2>Bonjour <%= nom %></h2>
-  <p>Choisissez un(e) candidat(e), puis validez votre choix.</p>
+    <h2>Bonjour <%= nom %></h2>
+    <p>Choisissez un(e) candidat(e), puis validez. <strong>Ce choix est définitif : vous ne pourrez voter qu'une seule fois.</strong></p>
 
-  <% if (erreur) { %>
-    <div class="erreur"><%= erreur %></div>
-  <% } %>
+    <% if (erreur) { %>
+        <div class="erreur"><%= erreur %></div>
+    <% } %>
 
-  <form method="POST" action="/vote" id="formVote">
-    <% candidats.forEach(function(c) { %>
-      <label class="candidat">
-        <input type="radio" class="candidat-radio" name="candidatId" value="<%= c.id %>" data-nom="<%= c.prenom %> <%= c.nom %>" required>
-        <span class="candidat-contenu">
+    <form method="POST" action="/vote" id="formVote">
+        <% candidats.forEach(function(c) { %>
+            <label class="candidat">
+                <input type="radio" class="candidat-radio" name="candidatId" value="<%= c.id %>" data-nom="<%= c.prenom %> <%= c.nom %>" required>
+                <span class="candidat-contenu">
           <span class="candidat-coche"></span>
-          <% if (c.photoUrl) { %>
-            <img src="<%= c.photoUrl %>" alt="<%= c.prenom %> <%= c.nom %>" class="candidat-photo">
-          <% } %>
-          <span class="candidat-infos">
+                    <% if (c.photoUrl) { %>
+                        <img src="<%= c.photoUrl %>" alt="<%= c.prenom %> <%= c.nom %>" class="candidat-photo">
+                    <% } %>
+                    <span class="candidat-infos">
             <h3><%= c.prenom %> <%= c.nom %></h3>
             <div class="club"><%= c.club || '' %></div>
           </span>
         </span>
-      </label>
-    <% }); %>
+            </label>
+        <% }); %>
 
-    <label class="candidat candidat-blanc">
-      <input type="radio" class="candidat-radio" name="candidatId" value="blanc" data-nom="Vote blanc" required>
-      <span class="candidat-contenu">
+        <label class="candidat candidat-blanc">
+            <input type="radio" class="candidat-radio" name="candidatId" value="blanc" data-nom="Vote blanc" required>
+            <span class="candidat-contenu">
         <span class="candidat-coche"></span>
         <span class="candidat-infos">
           <h3>Vote blanc</h3>
           <div class="club">Je ne souhaite voter pour aucun candidat</div>
         </span>
       </span>
-    </label>
+        </label>
 
-    <button type="submit">Valider mon vote</button>
-  </form>
+        <button type="submit">Valider mon vote</button>
+    </form>
 </div>
 
 <div class="modale-overlay" id="modaleConfirmation">
-  <div class="modale">
-    <div class="modale-titre">Confirmer votre vote</div>
-    <p class="modale-texte">
-      Vous allez voter pour <span class="modale-candidat" id="modaleNomCandidat"></span>.
-      Cette action est <strong>définitive</strong> : vous ne pourrez plus voter à nouveau.
-    </p>
-    <div class="modale-actions">
-      <button type="button" class="modale-confirmer" id="modaleConfirmer">Confirmer mon vote</button>
-      <button type="button" class="modale-annuler" id="modaleAnnuler">Retour</button>
+    <div class="modale">
+        <div class="modale-titre">Confirmer votre vote</div>
+        <p class="modale-texte">
+            Vous allez voter pour <span class="modale-candidat" id="modaleNomCandidat"></span>.
+            Cette action est <strong>définitive</strong> : vous ne pourrez plus voter à nouveau.
+        </p>
+        <div class="modale-actions">
+            <button type="button" class="modale-confirmer" id="modaleConfirmer">Confirmer mon vote</button>
+            <button type="button" class="modale-annuler" id="modaleAnnuler">Retour</button>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
-  (function () {
-    var form = document.getElementById('formVote');
-    var overlay = document.getElementById('modaleConfirmation');
-    var nomCandidat = document.getElementById('modaleNomCandidat');
-    var btnConfirmer = document.getElementById('modaleConfirmer');
-    var btnAnnuler = document.getElementById('modaleAnnuler');
+	(function () {
+		var form = document.getElementById('formVote');
+		var overlay = document.getElementById('modaleConfirmation');
+		var nomCandidat = document.getElementById('modaleNomCandidat');
+		var btnConfirmer = document.getElementById('modaleConfirmer');
+		var btnAnnuler = document.getElementById('modaleAnnuler');
 
-    form.addEventListener('submit', function (e) {
-      if (form.dataset.confirme === 'oui') return; // soumission réelle après confirmation
-      e.preventDefault();
+		form.addEventListener('submit', function (e) {
+			if (form.dataset.confirme === 'oui') return; // soumission réelle après confirmation
+			e.preventDefault();
 
-      var choix = form.querySelector('input[name="candidatId"]:checked');
-      if (!choix) return;
+			var choix = form.querySelector('input[name="candidatId"]:checked');
+			if (!choix) return;
 
-      nomCandidat.textContent = choix.dataset.nom;
-      overlay.classList.add('ouverte');
-    });
+			nomCandidat.textContent = choix.dataset.nom;
+			overlay.classList.add('ouverte');
+		});
 
-    btnConfirmer.addEventListener('click', function () {
-      form.dataset.confirme = 'oui';
-      overlay.classList.remove('ouverte');
-      form.submit();
-    });
+		btnConfirmer.addEventListener('click', function () {
+			form.dataset.confirme = 'oui';
+			overlay.classList.remove('ouverte');
+			form.submit();
+		});
 
-    btnAnnuler.addEventListener('click', function () {
-      overlay.classList.remove('ouverte');
-    });
+		btnAnnuler.addEventListener('click', function () {
+			overlay.classList.remove('ouverte');
+		});
 
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) overlay.classList.remove('ouverte');
-    });
-  })();
+		overlay.addEventListener('click', function (e) {
+			if (e.target === overlay) overlay.classList.remove('ouverte');
+		});
+	})();
 </script>
 
 <%- include('partials/foot') %>

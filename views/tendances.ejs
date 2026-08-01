@@ -6,7 +6,8 @@
         <div class="icone-attente">⏳</div>
         <h2><%= enCours ? 'Le vote est en cours' : "Le vote n'a pas encore commencé" %></h2>
         <p>
-            <% if (election) { %><%= election.titre %><br><% } %>
+            <% if (election) { %><%= election.titre %><br>
+            <% } %>
             Les résultats et les tendances seront visibles ici dès la clôture du scrutin.
         </p>
     </div>
@@ -16,7 +17,8 @@
     <div class="card">
         <h2>Tendances du scrutin</h2>
         <p>
-            <% if (election) { %><%= election.titre %><br><% } %>
+            <% if (election) { %><%= election.titre %><br>
+            <% } %>
             Scrutin clôturé — résultats définitifs.
         </p>
 
@@ -83,17 +85,24 @@
 				var canvas = document.getElementById('graphiqueTendances');
 				var ctx = canvas.getContext('2d');
 				var largeur = canvas.width, hauteur = canvas.height;
-				var marge = { haut: 16, bas: 30, gauche: 36, droite: 16 };
+				var marge = {haut: 16, bas: 30, gauche: 36, droite: 16};
 				var zoneL = largeur - marge.gauche - marge.droite;
 				var zoneH = hauteur - marge.haut - marge.bas;
 
 				var maxValeur = 1;
 				toutesLesSeries.forEach(function (s) {
-					s.valeurs.forEach(function (v) { if (v > maxValeur) maxValeur = v; });
+					s.valeurs.forEach(function (v) {
+						if (v > maxValeur) maxValeur = v;
+					});
 				});
 
-				function x(i) { return marge.gauche + (i / Math.max(1, totalPoints - 1)) * zoneL; }
-				function y(v) { return marge.haut + zoneH - (v / maxValeur) * zoneH; }
+				function x(i) {
+					return marge.gauche + (i / Math.max(1, totalPoints - 1)) * zoneL;
+				}
+
+				function y(v) {
+					return marge.haut + zoneH - (v / maxValeur) * zoneH;
+				}
 
 				ctx.strokeStyle = '#EDEBF7';
 				ctx.lineWidth = 1;

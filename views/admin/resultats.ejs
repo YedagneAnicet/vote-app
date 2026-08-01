@@ -13,25 +13,6 @@
         <li>Suffrages exprimés (hors blancs) : <strong><%= suffragesExprimes %></strong></li>
     </ul>
 
-    <div class="stat-barre-globale">
-        <div class="stat-barre-globale-remplie" style="width: <%= tauxParticipation %>%;"></div>
-    </div>
-
-    <% if (enTete && enTete.voix > 0) { %>
-        <div class="leader-carte">
-            <div class="leader-label">En tête</div>
-            <div class="leader-contenu">
-                <% if (enTete.photoUrl) { %>
-                    <img src="<%= enTete.photoUrl %>" alt="<%= enTete.prenom %> <%= enTete.nom %>" class="leader-photo">
-                <% } %>
-                <div>
-                    <div class="leader-nom"><%= enTete.prenom %> <%= enTete.nom %></div>
-                    <div class="leader-score"><%= enTete.voix %> voix — <%= enTete.pourcentage %> %</div>
-                </div>
-            </div>
-        </div>
-    <% } %>
-
     <ul class="classement">
         <% rows.forEach(function(r, i) { %>
             <li class="classement-item">

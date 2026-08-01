@@ -157,7 +157,7 @@ input[type="text"], input[type="password"], input[type="datetime-local"] {
 	border-radius: 8px;
 	border: 1px solid var(--bordure);
 	font-family: 'Outfit', sans-serif;
-	font-size: 16px;
+	font-size: 16px; /* évite le zoom auto sur iOS */
 	color: var(--noir);
 	background: var(--fond);
 	outline: none;
@@ -194,7 +194,7 @@ button[type="submit"], .bouton-principal {
 	transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
 	box-shadow: 0 4px 14px rgba(45, 27, 105, 0.25);
 	-webkit-tap-highlight-color: transparent;
-	min-height: 52px;
+	min-height: 52px; /* zone tactile confortable */
 }
 
 button[type="submit"]:hover, .bouton-principal:hover {
@@ -638,7 +638,13 @@ table.resultats tbody tr:nth-child(even) {
 }
 
 .resultat-barre-blanc {
-	background: repeating-linear-gradient(135deg, #c7c3d9, #c7c3d9 6px, #b8b4c9 6px, #b8b4c9 12px);
+	background: repeating-linear-gradient(
+			135deg,
+			#c7c3d9,
+			#c7c3d9 6px,
+			#b8b4c9 6px,
+			#b8b4c9 12px
+	);
 }
 
 .resultats-note {
@@ -1128,6 +1134,10 @@ table.resultats tbody tr:nth-child(even) {
 }
 
 .champs-grille label {
+	margin-top: 18px;
+}
+
+.champs-grille > div:first-child label {
 	margin-top: 18px;
 }
 
