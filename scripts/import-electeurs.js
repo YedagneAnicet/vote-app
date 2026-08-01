@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 /**
  * Importe les électeurs depuis un fichier CSV et génère un code d'accès unique pour chacun.
  * Format CSV attendu (avec en-tête) : numeroLicence,nom,prenom,dateNaissance,telephone

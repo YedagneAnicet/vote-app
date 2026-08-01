@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 /**
  * Initialise (ou met à jour) l'élection et les candidats.
  * Usage : node scripts/init-election.js

@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 /**
  * Crée ou met à jour le compte administrateur.
  * Usage : node scripts/create-admin.js identifiant motdepasse
