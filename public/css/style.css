@@ -214,6 +214,23 @@ button[type="submit"]:disabled {
 	transform: none;
 }
 
+.bouton-pv {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 18px;
+	border-radius: 8px;
+	background: linear-gradient(135deg, var(--violet) 0%, #1F1347 100%);
+	color: var(--blanc);
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+	box-shadow: 0 4px 14px rgba(45, 27, 105, 0.25);
+	flex-shrink: 0;
+}
+.bouton-pv:hover { opacity: 0.9; }
+
 /* ─── MESSAGE D'ERREUR ─── */
 .erreur {
 	margin-top: 16px;

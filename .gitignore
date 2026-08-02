@@ -4,3 +4,4 @@ db/vote.sqlite
 db/vote.sqlite-wal
 db/vote.sqlite-shm
 scripts/*.csv
+scripts/*.txt

@@ -89,4 +89,11 @@ router.post("/resultats/reinitialiser-tout", async (req, res) => {
 	res.redirect("/admin/resultats");
 });
 
+router.get("/pv", async (req, res) => {
+	const pdfService = require("../services/pdfService");
+	res.setHeader("Content-Type", "application/pdf");
+	res.setHeader("Content-Disposition", "attachment; filename=proces-verbal-scrutin.pdf");
+	await pdfService.genererPV(res);
+});
+
 module.exports = router;
