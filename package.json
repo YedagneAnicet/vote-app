@@ -2,8 +2,9 @@
   "name": "vote-fivta",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,7 +17,7 @@
     "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "nanoid": "^3.3.16",
-	  "pdfkit": "^0.19.1"
+    "multer": "^2.2.0",
+    "pdfkit": "^0.15.0"
   }
 }

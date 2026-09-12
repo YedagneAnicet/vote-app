@@ -4,7 +4,7 @@
     <h2>Résultats du scrutin</h2>
     <p>
         <strong><%= totalVotants %></strong> vote(s) enregistré(s) sur <strong><%= totalElecteurs %></strong> électeurs inscrits
-        — <strong><%= tauxParticipation %> %</strong> de participation.
+        soit <strong><%= tauxParticipation %> %</strong> de participation.
     </p>
 
     <div class="stat-barre-globale">
@@ -20,7 +20,7 @@
                 <% } %>
                 <div>
                     <div class="leader-nom"><%= enTete.prenom %> <%= enTete.nom %></div>
-                    <div class="leader-score"><%= enTete.voix %> voix — <%= enTete.pourcentage %> %</div>
+                    <div class="leader-score"><%= enTete.voix %> voix · <%= enTete.pourcentage %> %</div>
                 </div>
             </div>
         </div>

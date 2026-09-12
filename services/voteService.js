@@ -7,58 +7,90 @@ const ERREURS = {
   CANDIDAT_INVALIDE: "CANDIDAT_INVALIDE",
 };
 
-async function getElection() {
-  const r = await db.execute("SELECT * FROM election WHERE id = 1");
+async function getElectionBySlug(slug) {
+  const r = await db.execute({ sql: "SELECT * FROM elections WHERE slug = ?", args: [slug] });
   return r.rows[0] || null;
 }
 
-async function estDansLaPeriodeDeVote() {
-  const election = await getElection();
-  if (!election || election.statut !== "ouverte") return false;
-  const maintenant = new Date();
-  return maintenant >= new Date(election.dateOuverture) && maintenant <= new Date(election.dateCloture);
-}
-
-async function estClotureeDefinitivement() {
-  const election = await getElection();
-  if (!election) return false;
-  if (election.statut === "fermee") return true;
-  return new Date() > new Date(election.dateCloture);
-}
-
-async function authentifier(codeAcces) {
-  const r = await db.execute({
-    sql: "SELECT * FROM electeurs WHERE codeAcces = ?",
-    args: [(codeAcces || "").trim()],
-  });
-  const electeur = r.rows[0];
-  if (!electeur) return { succes: false, erreur: ERREURS.IDENTIFIANTS_INVALIDES };
-  if (electeur.aVote === 1) return { succes: false, erreur: ERREURS.DEJA_VOTE };
-  return { succes: true, electeur };
-}
-
-async function listerCandidatsValides() {
-  const r = await db.execute("SELECT id, nom, prenom, club, photoUrl FROM candidats WHERE valide = 1");
+/** Toutes les élections publiquement ouvertes (visibles sur la page d'accueil). */
+async function listerElectionsOuvertes() {
+  const r = await db.execute("SELECT * FROM elections WHERE statut = 'active' ORDER BY dateCreation DESC");
   return r.rows;
 }
 
-/**
- * Enregistre le vote de façon atomique via une transaction interactive :
- * - vérifie une dernière fois l'absence de vote (contrainte UNIQUE journal_votes.electeurId)
- * - insère le bulletin (anonyme, sans lien avec l'électeur) — pour un candidat ou en blanc
- * - marque l'électeur comme ayant voté
- * Toute violation de contrainte (double vote concurrent) annule la transaction entière.
- */
-async function voter(electeurId, choix) {
-  if (!(await estDansLaPeriodeDeVote())) {
+// --- Tours (scopés à une élection précise) ---
+
+async function getTourActif(electionId) {
+  const r = await db.execute({
+    sql: "SELECT * FROM tours WHERE electionId = ? ORDER BY numero DESC LIMIT 1",
+    args: [electionId],
+  });
+  return r.rows[0] || null;
+}
+
+async function estDansLaPeriodeDeVote(electionId) {
+  const tour = await getTourActif(electionId);
+  if (!tour || tour.statut !== "ouverte") return false;
+  const maintenant = new Date();
+  return maintenant >= new Date(tour.dateOuverture) && maintenant <= new Date(tour.dateCloture);
+}
+
+async function estClotureeDefinitivement(electionId) {
+  const tour = await getTourActif(electionId);
+  if (!tour) return false;
+  if (tour.statut === "fermee") return true;
+  return new Date() > new Date(tour.dateCloture);
+}
+
+async function authentifier(electionId, codeAcces) {
+  const tour = await getTourActif(electionId);
+  if (!tour) return { succes: false, erreur: ERREURS.IDENTIFIANTS_INVALIDES };
+
+  const r = await db.execute({
+    sql: "SELECT * FROM electeurs WHERE electionId = ? AND codeAcces = ?",
+    args: [electionId, (codeAcces || "").trim()],
+  });
+  const electeur = r.rows[0];
+  if (!electeur) return { succes: false, erreur: ERREURS.IDENTIFIANTS_INVALIDES };
+
+  const rv = await db.execute({
+    sql: "SELECT 1 FROM journal_votes WHERE electeurId = ? AND tourId = ?",
+    args: [electeur.id, tour.id],
+  });
+  if (rv.rows.length > 0) return { succes: false, erreur: ERREURS.DEJA_VOTE };
+
+  return { succes: true, electeur };
+}
+
+async function listerCandidatsValides(electionId) {
+  const tour = await getTourActif(electionId);
+  if (!tour) return [];
+  const r = await db.execute({
+    sql: `SELECT c.id, c.nom, c.prenom, c.club, c.photoUrl
+          FROM candidats c
+          JOIN candidats_tours ct ON ct.candidatId = c.id
+          WHERE ct.tourId = ? AND c.valide = 1`,
+    args: [tour.id],
+  });
+  return r.rows;
+}
+
+async function voter(electionId, electeurId, choix) {
+  if (!(await estDansLaPeriodeDeVote(electionId))) {
     return { succes: false, erreur: ERREURS.ELECTION_FERMEE };
   }
+  const tour = await getTourActif(electionId);
 
   let candidatId = null;
   let type = "blanc";
 
   if (choix !== "blanc") {
-    const rc = await db.execute({ sql: "SELECT id FROM candidats WHERE id = ? AND valide = 1", args: [choix] });
+    const rc = await db.execute({
+      sql: `SELECT c.id FROM candidats c
+            JOIN candidats_tours ct ON ct.candidatId = c.id
+            WHERE c.id = ? AND ct.tourId = ? AND c.valide = 1`,
+      args: [choix, tour.id],
+    });
     if (!rc.rows[0]) return { succes: false, erreur: ERREURS.CANDIDAT_INVALIDE };
     candidatId = rc.rows[0].id;
     type = "candidat";
@@ -66,14 +98,14 @@ async function voter(electeurId, choix) {
 
   const tx = await db.transaction("write");
   try {
-    // Insertion dans journal_votes : la contrainte UNIQUE(electeurId) protège contre le double vote,
-    // y compris en cas de requêtes concurrentes (double clic, deux onglets).
-    await tx.execute({ sql: "INSERT INTO journal_votes (electeurId) VALUES (?)", args: [electeurId] });
     await tx.execute({
-      sql: "INSERT INTO bulletins (candidatId, type) VALUES (?, ?)",
-      args: [candidatId, type],
+      sql: "INSERT INTO journal_votes (tourId, electeurId) VALUES (?, ?)",
+      args: [tour.id, electeurId],
     });
-    await tx.execute({ sql: "UPDATE electeurs SET aVote = 1 WHERE id = ?", args: [electeurId] });
+    await tx.execute({
+      sql: "INSERT INTO bulletins (tourId, candidatId, type) VALUES (?, ?, ?)",
+      args: [tour.id, candidatId, type],
+    });
     await tx.commit();
     return { succes: true };
   } catch (e) {
@@ -83,12 +115,21 @@ async function voter(electeurId, choix) {
   }
 }
 
-/**
- * Évolution cumulée des votes dans le temps, pour un graphique de tendance.
- */
-async function tendances() {
-  const rb = await db.execute("SELECT type, candidatId FROM bulletins ORDER BY horodatage ASC, id ASC");
-  const rc = await db.execute("SELECT id, nom, prenom FROM candidats WHERE valide = 1 ORDER BY nom ASC");
+async function tendances(tourId) {
+  const r0 = await db.execute({ sql: "SELECT * FROM tours WHERE id = ?", args: [tourId] });
+  const tour = r0.rows[0];
+  if (!tour) return { series: [], serieBlanc: { nom: "Votes blancs", valeurs: [0] }, totalPoints: 1 };
+
+  const rb = await db.execute({
+    sql: "SELECT type, candidatId FROM bulletins WHERE tourId = ? ORDER BY horodatage ASC, id ASC",
+    args: [tour.id],
+  });
+  const rc = await db.execute({
+    sql: `SELECT c.id, c.nom, c.prenom FROM candidats c
+          JOIN candidats_tours ct ON ct.candidatId = c.id
+          WHERE ct.tourId = ? AND c.valide = 1 ORDER BY c.nom ASC`,
+    args: [tour.id],
+  });
 
   const cumul = {};
   rc.rows.forEach((c) => (cumul[c.id] = 0));
@@ -110,18 +151,31 @@ async function tendances() {
   return { series, serieBlanc, totalPoints: rb.rows.length + 1 };
 }
 
-async function resultats() {
-  const rc = await db.execute(`
-    SELECT c.id, c.nom, c.prenom, c.photoUrl,
-           (SELECT COUNT(*) FROM bulletins b WHERE b.candidatId = c.id AND b.type = 'candidat') AS voix
-    FROM candidats c
-    WHERE c.valide = 1
-    ORDER BY voix DESC
-  `);
+/** Résultats pour un tour donné (id de tour requis). */
+async function resultats(tourId) {
+  const r0 = await db.execute({ sql: "SELECT * FROM tours WHERE id = ?", args: [tourId] });
+  const tour = r0.rows[0];
 
-  const rBlancs = await db.execute("SELECT COUNT(*) AS n FROM bulletins WHERE type = 'blanc'");
-  const rVotants = await db.execute("SELECT COUNT(*) AS n FROM journal_votes");
-  const rElecteurs = await db.execute("SELECT COUNT(*) AS n FROM electeurs");
+  if (!tour) {
+    return {
+      rows: [], blancs: 0, pourcentageBlancs: 0, suffragesExprimes: 0,
+      totalVotants: 0, totalElecteurs: 0, tauxParticipation: 0, enTete: null,
+    };
+  }
+
+  const rc = await db.execute({
+    sql: `SELECT c.id, c.nom, c.prenom, c.photoUrl,
+                 (SELECT COUNT(*) FROM bulletins b WHERE b.candidatId = c.id AND b.type = 'candidat' AND b.tourId = ?) AS voix
+          FROM candidats c
+          JOIN candidats_tours ct ON ct.candidatId = c.id
+          WHERE ct.tourId = ? AND c.valide = 1
+          ORDER BY voix DESC`,
+    args: [tour.id, tour.id],
+  });
+
+  const rBlancs = await db.execute({ sql: "SELECT COUNT(*) AS n FROM bulletins WHERE type = 'blanc' AND tourId = ?", args: [tour.id] });
+  const rVotants = await db.execute({ sql: "SELECT COUNT(*) AS n FROM journal_votes WHERE tourId = ?", args: [tour.id] });
+  const rElecteurs = await db.execute({ sql: "SELECT COUNT(*) AS n FROM electeurs WHERE electionId = ?", args: [tour.electionId] });
 
   const blancs = Number(rBlancs.rows[0].n);
   const totalVotants = Number(rVotants.rows[0].n);
@@ -138,20 +192,16 @@ async function resultats() {
   const tauxParticipation = totalElecteurs > 0 ? Math.round((totalVotants / totalElecteurs) * 1000) / 10 : 0;
 
   return {
-    rows,
-    blancs,
-    pourcentageBlancs,
-    suffragesExprimes,
-    totalVotants,
-    totalElecteurs,
-    tauxParticipation,
-    enTete: rows[0] || null,
+    rows, blancs, pourcentageBlancs, suffragesExprimes, totalVotants, totalElecteurs,
+    tauxParticipation, enTete: rows[0] || null,
   };
 }
 
 module.exports = {
   ERREURS,
-  getElection,
+  getElectionBySlug,
+  listerElectionsOuvertes,
+  getTourActif,
   estDansLaPeriodeDeVote,
   estClotureeDefinitivement,
   authentifier,

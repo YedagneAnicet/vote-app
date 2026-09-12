@@ -1,0 +1,132 @@
+<%- include('_head', { page: 'elections' }) %>
+
+<div class="card">
+    <div class="admin-card-entete">
+        <div class="carte-titre">
+            <div class="carte-eyebrow">Toutes les élections</div>
+            <h2>Élections</h2>
+            <p>Cliquez sur « Gérer » pour basculer votre espace de travail sur une élection (candidats, électeurs, tours, résultats).</p>
+        </div>
+        <% if (elections.length > 0) { %>
+        <button type="button" class="bouton bouton-rond" onclick="ouvrirAjoutElection()" aria-label="Créer une élection">+</button>
+        <% } %>
+    </div>
+
+    <% if (elections.length === 0) { %>
+        <p>Aucune élection créée pour le moment.</p>
+        <button type="button" class="bouton bouton-principal bouton-auto bouton-espace-haut" onclick="ouvrirAjoutElection()">Créer votre première élection</button>
+    <% } else { %>
+    <div class="tableau-propre-conteneur">
+        <table class="tableau-propre">
+            <thead>
+            <tr>
+                <th>Titre</th>
+                <th>Lien public</th>
+                <th>Créée le</th>
+                <th>Statut</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <% elections.forEach(function(e) { %>
+                <tr>
+                    <td data-label="Titre"><%= e.titre %></td>
+                    <td data-label="Lien"><code class="code-acces"><%= e.slug %></code></td>
+                    <td data-label="Créée le"><%= e.dateCreation %></td>
+                    <td data-label="Statut"><span class="badge <%= e.statut === 'active' ? 'badge-vert' : 'badge-gris' %>"><%= e.statut === 'active' ? 'Ouverte' : 'Archivée' %></span></td>
+                    <td data-label="">
+                        <div class="cellule-actions">
+                            <button type="button" class="bouton bouton-icone" title="Modifier le titre"
+                                    onclick='ouvrirModifElection(<%- JSON.stringify({id: e.id, titre: e.titre}) %>)'>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <form method="POST" action="/admin/elections/<%= e.id %>/travailler">
+                                <button type="submit"
+                                        class="bouton bouton-discret <%= electionTravailId === e.id ? 'actif' : '' %>"><%= electionTravailId === e.id ? 'En cours de gestion' : 'Gérer' %></button>
+                            </form>
+                            <a href="/admin/resultats?election=<%= e.id %>" class="bouton bouton-discret">Résultats</a>
+                            <% if (e.statut === 'active') { %>
+                                <form method="POST" action="/admin/elections/<%= e.id %>/archiver">
+                                    <button type="submit" class="bouton bouton-discret">Archiver</button>
+                                </form>
+                            <% } else { %>
+                                <form method="POST" action="/admin/elections/<%= e.id %>/reactiver">
+                                    <button type="submit" class="bouton bouton-discret">Réactiver</button>
+                                </form>
+                            <% } %>
+                        </div>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <% } %>
+</div>
+
+<div class="modale-overlay" id="modaleElection">
+    <div class="modale">
+        <div class="modale-titre">Créer une élection</div>
+        <p class="modale-texte">Chaque élection a ses propres candidats et électeurs, et peut tourner en même temps que d'autres élections déjà ouvertes.</p>
+        <form method="POST" action="/admin/elections">
+            <label for="titre">Titre de la nouvelle élection</label>
+            <input type="text" id="titre" name="titre" placeholder="Ex. Élection du Trésorier - 2027" required autofocus>
+            <div class="modale-actions">
+                <button type="submit" class="bouton bouton-principal bouton-pleine-largeur">Créer cette élection</button>
+                <button type="button" class="bouton bouton-secondaire bouton-pleine-largeur" onclick="fermerModaleElection()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modale-overlay" id="modaleModifElection">
+    <div class="modale">
+        <div class="modale-titre">Modifier le titre de l'élection</div>
+        <form method="POST" id="formModifElection" action="">
+            <label for="titreModif">Titre</label>
+            <input type="text" id="titreModif" name="titre" required autofocus>
+            <div class="modale-actions">
+                <button type="submit" class="bouton bouton-principal bouton-pleine-largeur">Enregistrer</button>
+                <button type="button" class="bouton bouton-secondaire bouton-pleine-largeur" onclick="fermerModaleModifElection()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+	var overlayElection = document.getElementById('modaleElection');
+
+	function ouvrirAjoutElection() {
+		overlayElection.classList.add('ouverte');
+	}
+
+	function fermerModaleElection() {
+		overlayElection.classList.remove('ouverte');
+	}
+
+	overlayElection.addEventListener('click', function (e) {
+		if (e.target === overlayElection) fermerModaleElection();
+	});
+
+	var overlayModifElection = document.getElementById('modaleModifElection');
+	var formModifElection = document.getElementById('formModifElection');
+
+	function ouvrirModifElection(e) {
+		formModifElection.action = '/admin/elections/' + e.id + '/titre';
+		document.getElementById('titreModif').value = e.titre;
+		overlayModifElection.classList.add('ouverte');
+	}
+
+	function fermerModaleModifElection() {
+		overlayModifElection.classList.remove('ouverte');
+	}
+
+	overlayModifElection.addEventListener('click', function (e) {
+		if (e.target === overlayModifElection) fermerModaleModifElection();
+	});
+</script>
+
+<%- include('_foot') %>

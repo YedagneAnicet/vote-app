@@ -1,33 +1,45 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <meta name="theme-color" content="#2D1B69">
-    <title>Admin — Vote FIVTA</title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#2D1B69">
+  <title>ADMINISTRATEUR</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <header class="site site-admin">
-    <div class="site-admin-titre">
-        <h1>Fédération Ivoirienne de Tir à l'Arc</h1>
-        <p>Dashboard administrateur</p>
-    </div>
-    <div class="admin-actions-entete">
-        <form method="POST" action="/admin/resultats/reinitialiser-tout"
-              onsubmit="return confirm('Ceci efface DÉFINITIVEMENT tous les votes enregistrés et remet tous les électeurs à zéro. Continuer ?') && confirm('Confirmez une seconde fois : êtes-vous certain(e) ? Cette action est irréversible.');">
-            <button type="submit" class="bouton-danger-petit">Réinitialiser tout</button>
-        </form>
-        <form method="POST" action="/admin/logout" class="admin-deconnexion">
-            <span class="admin-utilisateur"><%= adminNom %></span>
-            <button type="submit" class="lien-deconnexion">Déconnexion</button>
-        </form>
-    </div>
+  <div class="site-admin-titre">
+    <h1>E-VOTE</h1>
+    <p>Dashboard administrateur</p>
+  </div>
+  <div class="admin-actions-entete">
+    <form method="POST" action="/admin/resultats/reinitialiser-tout"
+          onsubmit="return confirm('Ceci efface DÉFINITIVEMENT tous les votes du tour actif et remet les compteurs à zéro. Continuer ?') && confirm('Confirmez une seconde fois : êtes-vous certain(e) ? Cette action est irréversible.');">
+      <button type="submit" class="bouton bouton-danger bouton-petit">Réinitialiser le tour actif</button>
+    </form>
+    <form method="POST" action="/admin/logout" class="admin-deconnexion">
+      <span class="admin-utilisateur"><%= adminNom %></span>
+      <button type="submit" class="bouton bouton-secondaire bouton-micro">Déconnexion</button>
+    </form>
+  </div>
 </header>
 <div class="page page-admin">
-    <nav class="admin-nav">
-        <a href="/admin/election" class="admin-tab <%= page === 'election' ? 'actif' : '' %>">Élection</a>
-        <a href="/admin/candidats" class="admin-tab <%= page === 'candidats' ? 'actif' : '' %>">Candidatures</a>
-        <a href="/admin/electeurs" class="admin-tab <%= page === 'electeurs' ? 'actif' : '' %>">Électeurs</a>
-        <a href="/admin/resultats" class="admin-tab <%= page === 'resultats' ? 'actif' : '' %>">Résultats</a>
-    </nav>
+  <nav class="admin-nav">
+    <a href="/admin/elections" class="admin-tab <%= page === 'elections' ? 'actif' : '' %>">Élections</a>
+    <a href="/admin/election" class="admin-tab <%= page === 'election' ? 'actif' : '' %>">Élection</a>
+    <a href="/admin/candidats" class="admin-tab <%= page === 'candidats' ? 'actif' : '' %>">Candidatures</a>
+    <a href="/admin/electeurs" class="admin-tab <%= page === 'electeurs' ? 'actif' : '' %>">Électeurs</a>
+    <a href="/admin/resultats" class="admin-tab <%= page === 'resultats' ? 'actif' : '' %>">Résultats</a>
+    <a href="/admin/comptes" class="admin-tab <%= page === 'comptes' ? 'actif' : '' %>">Comptes</a>
+  </nav>
+
+  <% if (typeof election !== 'undefined' && election) { %>
+  <div class="bandeau-election">
+    <div class="bandeau-election-titre">
+      <span>Vous gérez actuellement</span>
+      <%= election.titre %>
+    </div>
+    <a href="/admin/elections">Changer d'élection</a>
+  </div>
+  <% } %>

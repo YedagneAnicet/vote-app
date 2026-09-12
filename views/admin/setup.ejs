@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#2D1B69">
+  <title>Configuration initiale</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site">
+  <h1>E-Vote</h1>
+  <p>Configuration initiale</p>
+</header>
+<div class="page">
+  <div class="card">
+    <h2>Bienvenue</h2>
+    <p>Aucun compte administrateur n'existe encore. Créez le premier compte pour accéder au dashboard</p>
+    <% if (erreur) { %><div class="erreur"><%= erreur %></div><% } %>
+    <form method="POST" action="/admin/setup">
+      <label for="identifiant">Identifiant</label>
+      <input type="text" id="identifiant" name="identifiant" required autofocus>
+
+      <label for="motDePasse">Mot de passe (8 caractères minimum)</label>
+      <input type="password" id="motDePasse" name="motDePasse" required minlength="8">
+
+      <label for="motDePasseConfirmation">Confirmer le mot de passe</label>
+      <input type="password" id="motDePasseConfirmation" name="motDePasseConfirmation" required minlength="8">
+
+      <button type="submit" class="bouton bouton-principal bouton-pleine-largeur bouton-espace-haut">Créer le compte administrateur</button>
+    </form>
+  </div>
+</div>
+<footer class="site">Plateforme de vote en ligne</footer>
+</body>
+</html>

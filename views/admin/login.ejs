@@ -4,34 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#2D1B69">
-  <title>Connexion admin — Vote FIVTA</title>
+  <title>Connexion admin</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <header class="site">
-  <h1>Fédération Ivoirienne de Tir à l'Arc</h1>
+  <h1>E-Vote</h1>
   <p>Dashboard administrateur</p>
 </header>
 <div class="page">
   <div class="card">
     <h2>Connexion administrateur</h2>
     <p>Accès réservé à la Commission des élections.</p>
-
-    <% if (erreur) { %>
-      <div class="erreur"><%= erreur %></div>
-    <% } %>
-
+    <% if (erreur) { %><div class="erreur"><%= erreur %></div><% } %>
     <form method="POST" action="/admin/login">
       <label for="identifiant">Identifiant</label>
       <input type="text" id="identifiant" name="identifiant" required autofocus>
-
       <label for="motDePasse">Mot de passe</label>
       <input type="password" id="motDePasse" name="motDePasse" required>
-
-      <button type="submit">Se connecter</button>
+      <button type="submit" class="bouton bouton-principal bouton-pleine-largeur bouton-espace-haut">Se connecter</button>
     </form>
   </div>
 </div>
-<footer class="site">FIVTA · Élection Président(e) des Athlètes 2026</footer>
+<footer class="site">E-Vote</footer>
 </body>
 </html>
