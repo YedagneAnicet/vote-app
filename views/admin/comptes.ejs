@@ -1,0 +1,74 @@
+<%- include('_head', { page: 'comptes' }) %>
+
+<div class="card">
+    <div class="admin-card-entete">
+        <div class="carte-titre">
+            <div class="carte-eyebrow">Sécurité</div>
+            <h2>Comptes administrateur</h2>
+            <p>Toute personne avec un compte peut gérer toutes les élections. Créez un compte par membre de la commission.</p>
+        </div>
+        <% if (admins.length > 0) { %>
+        <button type="button" class="bouton bouton-rond" onclick="ouvrirAjoutCompte()" aria-label="Ajouter un compte">+</button>
+        <% } %>
+    </div>
+
+    <% if (erreur) { %>
+        <div class="erreur"><%= erreur %></div>
+    <% } %>
+
+    <% if (admins.length === 0) { %>
+        <p>Aucun compte administrateur pour le moment.</p>
+        <button type="button" class="bouton bouton-principal bouton-auto bouton-espace-haut" onclick="ouvrirAjoutCompte()">Ajouter un compte</button>
+    <% } else { %>
+    <div class="tableau-propre-conteneur">
+        <table class="tableau-propre">
+            <thead>
+            <tr>
+                <th>Identifiant</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% admins.forEach(function(a) { %>
+                <tr>
+                    <td data-label="Identifiant"><%= a.identifiant %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <% } %>
+</div>
+
+<div class="modale-overlay" id="modaleCompte">
+    <div class="modale">
+        <div class="modale-titre">Ajouter un compte administrateur</div>
+        <form method="POST" action="/admin/comptes">
+            <label for="identifiant">Identifiant</label>
+            <input type="text" id="identifiant" name="identifiant" required autofocus>
+            <label for="motDePasse">Mot de passe (8 caractères minimum)</label>
+            <input type="password" id="motDePasse" name="motDePasse" required minlength="8">
+            <div class="modale-actions">
+                <button type="submit" class="bouton bouton-principal bouton-pleine-largeur">Créer ce compte</button>
+                <button type="button" class="bouton bouton-secondaire bouton-pleine-largeur" onclick="fermerModaleCompte()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+	var overlayCompte = document.getElementById('modaleCompte');
+
+	function ouvrirAjoutCompte() {
+		overlayCompte.classList.add('ouverte');
+	}
+
+	function fermerModaleCompte() {
+		overlayCompte.classList.remove('ouverte');
+	}
+
+	overlayCompte.addEventListener('click', function (e) {
+		if (e.target === overlayCompte) fermerModaleCompte();
+	});
+</script>
+
+<%- include('_foot') %>

@@ -1,108 +1,170 @@
-# Plateforme de vote — Élection du/de la Président(e) des Athlètes (FIVTA)
+# Plateforme de vote
 
-Application web légère (Node.js + Express + SQLite) permettant à chaque électeur
-de voter **une seule fois** pour élire le/la Président(e) des Athlètes.
+Application web (Node.js + Express + Turso) permettant de gérer **plusieurs élections en ligne, simultanément**, avec suivi des tours de scrutin, génération des codes d'accès électeurs, résultats en direct et export du procès-verbal en PDF.
+
+Tout se gère depuis un dashboard admin, **aucun script en ligne de commande n'est nécessaire**, y compris pour la toute première configuration.
+
+---
+
+## Sommaire
+
+1. [Fonctionnement en résumé](#fonctionnement-en-résumé)
+2. [Installation locale](#installation-locale)
+3. [Prise en main depuis le dashboard](#prise-en-main-depuis-le-dashboard)
+4. [Élections multiples et simultanées](#élections-multiples-et-simultanées)
+5. [Résultats publics en direct](#résultats-publics-en-direct)
+6. [Sécurité](#sécurité--points-essentiels-avant-louverture-dun-scrutin)
+7. [Déploiement (Render + Turso)](#déploiement-render--turso)
+8. [Structure du projet](#structure-du-projet)
+9. [Modèle de données](#modèle-de-données-résumé)
+
+---
 
 ## Fonctionnement en résumé
 
-- Chaque électeur se connecte avec son **numéro de licence** + un **code d'accès**
-  personnel (généré et à transmettre par SMS/e-mail avant le scrutin).
-- Il choisit un candidat et valide : son vote est enregistré, sa session est
-  détruite immédiatement après.
-- L'unicité du vote est garantie par une **contrainte UNIQUE en base de données**
-  sur `journal_votes.electeurId`, combinée à une **transaction atomique** : même
-  en cas de double clic ou de tentative de reconnexion, un second vote est
-  impossible.
-- Le choix exprimé (`bulletins`) n'est **jamais lié** à l'identité de l'électeur :
-  seule une table séparée (`journal_votes`) retient qui a voté, sans le choix.
+| Aspect | Détail |
+|---|---|
+| **Multi-élections** | Chaque élection a sa propre URL publique (`/e/<slug>/login`), ses propres candidats et ses propres électeurs. Plusieurs élections peuvent tourner en même temps sans interférence. |
+| **Multi-tours** | Une élection peut avoir plusieurs tours (1er, 2e...), chacun avec ses candidats qualifiés, ses dates et ses résultats propres. |
+| **Connexion électeur** | Code d'accès personnel généré automatiquement, à transmettre par SMS/WhatsApp avant le scrutin. |
+| **Vote** | Choix d'un candidat (ou vote blanc), puis validation. La session est détruite immédiatement après le vote. |
+| **Unicité du vote** | Garantie **par tour** par une contrainte UNIQUE en base (`journal_votes`) + une transaction atomique. Un double clic ou une reconnexion ne permet jamais un second vote sur le même tour. |
+| **Anonymat** | Le bulletin exprimé n'est **jamais lié** à l'identité de l'électeur : une table séparée retient uniquement *qui* a voté, jamais *pour qui*. |
+| **Persistance** | Données stockées sur **Turso** (SQLite hébergé), indépendant du serveur applicatif : aucune perte en cas de redémarrage. |
+
+---
 
 ## Installation locale
 
 ```bash
 npm install
-cp .env.example .env      # puis modifiez SESSION_SECRET et ADMIN_KEY
-node scripts/init-election.js
-node scripts/import-electeurs.js scripts/electeurs-exemple.csv
+cp .env.example .env
 node server.js
 ```
 
-L'application est accessible sur `http://localhost:3000`.
+Ouvrez `http://localhost:3000/admin/setup`. Cette page ne s'affiche que tant qu'aucun compte administrateur n'existe. Créez votre premier compte (identifiant + mot de passe), vous êtes ensuite redirigé vers la connexion.
 
-## Configuration de l'élection
+---
 
-Modifiez les candidats et les dates dans `scripts/init-election.js`, puis relancez :
+## Prise en main depuis le dashboard
 
-```bash
-node scripts/init-election.js
-```
+Une fois connecté à `/admin` :
 
-## Import des électeurs
+### 1. Créer une élection
+Onglet **Élections** → titre de l'élection. Un lien public unique est généré automatiquement (ex. `/e/election-du-tresorier/login`).
 
-Préparez un fichier CSV avec les colonnes :
+### 2. Ajouter les candidats
+Onglet **Candidatures** → nom, prénom, club, photo.
 
-```
-numeroLicence,nom,prenom,dateNaissance,email,telephone
-```
+### 3. Ajouter les électeurs
+Onglet **Électeurs** → deux options :
+- Ajout manuel, un par un
+- **Import CSV** (bouton dédié), avec les colonnes :
+  ```
+  numeroLicence,nom,prenom,dateNaissance,telephone
+  ```
 
-Puis lancez :
+Un code d'accès à 6 chiffres est généré automatiquement pour chaque électeur. Le bouton **Messages WhatsApp** télécharge un fichier texte prêt à copier-coller : un message personnalisé par électeur, avec son code et le lien de vote.
 
-```bash
-node scripts/import-electeurs.js chemin/vers/electeurs.csv
-```
+### 4. Configurer les tours
+Onglet **Élection** → créez le tour 1 (dates d'ouverture/clôture). Une fois le scrutin terminé, un bouton permet de **lancer un nouveau tour** en sélectionnant les candidats qualifiés.
 
-Un fichier `codes-generes.csv` est produit à côté du fichier source, contenant
-le code d'accès de chaque électeur. **Ce fichier est confidentiel** : à utiliser
-uniquement pour transmettre individuellement les codes (SMS, e-mail, ou message
-privé), jamais à diffuser publiquement (ex. pas dans le groupe WhatsApp).
+### 5. Suivre les résultats
+Onglet **Résultats** → participation en direct, classement par tour, téléchargement du **procès-verbal en PDF** (bouton 📄 PV).
 
-## Consulter les résultats
+### 6. Gérer les accès
+Onglet **Comptes** → ajoutez d'autres comptes administrateur si besoin (toute la commission peut avoir son propre accès).
 
-```
-https://votre-domaine/admin/resultats?cle=VOTRE_ADMIN_KEY
-```
+---
 
-`VOTRE_ADMIN_KEY` est la valeur définie dans `.env` (`ADMIN_KEY`). Gardez cette
-URL strictement confidentielle.
+## Élections multiples et simultanées
 
-## Déploiement sur Hostinger (hébergement Node.js infogéré)
+Rien n'empêche d'avoir plusieurs élections ouvertes en même temps (ex. *Président des Athlètes* + *Trésorier*). Chacune dispose de :
 
-1. Dans hPanel Hostinger, créez une application **Node.js** (offre « Node.js
-   Hosting »), avec le sous-domaine souhaité (ex. `vote.fivta.net`).
-2. Déployez le code du dossier `vote-fivta/` (dépôt Git ou envoi direct des
-   fichiers, hors `node_modules/`).
-3. Dans les paramètres de l'application, définissez les variables
-   d'environnement : `SESSION_SECRET`, `ADMIN_KEY`, `PORT` (souvent imposé par
-   Hostinger).
-4. Définissez la commande de démarrage : `node server.js`.
-5. Une fois l'application démarrée, connectez-vous en SSH ou via la console
-   Hostinger pour exécuter une fois :
-   ```bash
-   node scripts/init-election.js
-   node scripts/import-electeurs.js electeurs.csv
-   ```
-6. Ajoutez un enregistrement DNS (CNAME ou A) chez OVH pour pointer
-   `vote.fivta.net` vers l'application Hostinger — le site principal FIVTA
-   (WordPress) reste intact sur OVH.
+- son propre lien public (`/e/<slug>/...`)
+- ses propres candidats et électeurs (aucun partage entre élections)
+- ses propres codes d'accès (un code n'est valable que pour l'élection à laquelle il appartient)
 
-## Sécurité — points essentiels avant l'ouverture du scrutin
+La page d'accueil publique (`/`) liste automatiquement toutes les élections actuellement ouvertes.
 
-- Changez impérativement `SESSION_SECRET` et `ADMIN_KEY` dans `.env` (valeurs
-  aléatoires longues, jamais celles de l'exemple).
-- Servez l'application uniquement en HTTPS (certificat fourni par Hostinger).
-- Ne diffusez jamais `codes-generes.csv` publiquement.
-- Sauvegardez le fichier `db/vote.sqlite` après la clôture du scrutin (procès-verbal).
+Une élection peut être **archivée** (bouton dans l'onglet Élections) une fois terminée. Ses résultats et son PV restent consultables indéfiniment, elle disparaît juste de la page d'accueil publique.
+
+---
+
+## Résultats publics en direct
+
+**URL** : `/e/<slug>/tendances`, page publique, sans connexion.
+
+- **Pendant le vote** : affiche uniquement « le vote est en cours », pour ne pas influencer les électeurs qui n'ont pas encore voté.
+- **Après clôture** : affiche un graphique de l'évolution des votes dans le temps, ainsi que le classement final.
+
+---
+
+## Sécurité : points essentiels avant l'ouverture d'un scrutin
+
+- [ ] Changez `SESSION_SECRET` dans `.env` / variables d'environnement (valeur aléatoire longue, jamais celle de l'exemple).
+- [ ] Servez l'application uniquement en HTTPS.
+- [ ] Ne partagez jamais le fichier de messages WhatsApp publiquement (il contient les codes d'accès individuels) : un message par électeur, en privé.
+- [ ] Le compte administrateur donne accès à **toutes** les élections : n'en créez que pour les personnes de confiance de la commission électorale.
+
+---
+
+## Déploiement (Render + Turso)
+
+### 1. Créer la base Turso
+Base de données persistante, gratuite, sans carte bancaire.
+- Créez une base sur [turso.tech](https://turso.tech)
+- Récupérez l'URL (`libsql://...`) et un jeton d'accès
+
+### 2. Créer le service Render
+Hébergement gratuit, à partir de votre dépôt Git.
+- **Build Command** : `npm install`
+- **Start Command** : `npm start`
+
+### 3. Configurer les variables d'environnement
+Dans Render, définissez :
+
+| Variable | Valeur |
+|---|---|
+| `SESSION_SECRET` | Chaîne aléatoire longue |
+| `TURSO_DATABASE_URL` | URL fournie par Turso |
+| `TURSO_AUTH_TOKEN` | Jeton fourni par Turso |
+
+### 4. Premier lancement
+Ouvrez `https://votre-app.onrender.com/admin/setup` pour créer votre compte administrateur, puis configurez vos élections depuis le dashboard.
+
+---
 
 ## Structure du projet
 
 ```
-vote-fivta/
-├── server.js                 # point d'entrée Express
-├── db/database.js            # connexion SQLite + schéma
-├── services/voteService.js   # logique métier (authentification, vote, résultats)
-├── routes/vote.js            # routes HTTP
-├── views/                    # pages EJS (login, vote, confirmation, résultats)
-├── public/css/style.css      # style
-└── scripts/
-    ├── init-election.js      # configure l'élection + les candidats
-    └── import-electeurs.js   # importe les électeurs et génère les codes d'accès
+vote/
+├── server.js                    # point d'entrée Express
+├── db/
+│   └── database.js              # connexion Turso/libSQL + schéma
+├── services/
+│   ├── voteService.js           # logique métier publique (auth, vote, résultats)
+│   ├── adminService.js          # logique métier admin (élections, tours, candidats, électeurs)
+│   └── pdfService.js            # génération du procès-verbal PDF
+├── routes/
+│   ├── vote.js                  # routes publiques (accueil, /e/:slug/...)
+│   └── admin.js                 # routes du dashboard admin
+├── views/                       # pages EJS publiques (login, vote, tendances...)
+│   └── admin/                   # pages EJS du dashboard admin
+└── public/
+    └── css/style.css            # style
 ```
+
+---
+
+## Modèle de données (résumé)
+
+| Table | Rôle |
+|---|---|
+| `elections` | Une ligne par élection, avec son `slug` unique |
+| `candidats`, `electeurs` | Propres à une élection (`electionId`) |
+| `tours` | Les rounds de vote d'une élection (`electionId`, `numero`) |
+| `candidats_tours` | Quels candidats sont qualifiés pour quel tour |
+| `bulletins` | Les votes exprimés, **anonymes** (aucune référence à l'électeur) |
+| `journal_votes` | Qui a voté à quel tour (`UNIQUE(tourId, electeurId)`), sans lien avec le choix exprimé |
+| `admins` | Comptes du dashboard |

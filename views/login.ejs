@@ -1,19 +1,20 @@
 <%- include('partials/head') %>
 
 <div class="card">
-    <h2>Connexion électeur</h2>
-    <p>Utilisez le code d'accès reçu par SMS ou via Whatsapp.</p>
+  <h2>Connexion électeur</h2>
+  <% if (tour) { %><p class="tour-badge">Tour <%= tour.numero %></p><% } %>
+  <p>Utilisez le code d'accès reçu par SMS/e-mail.</p>
 
-    <% if (erreur) { %>
-        <div class="erreur"><%= erreur %></div>
-    <% } %>
+  <% if (erreur) { %>
+    <div class="erreur"><%= erreur %></div>
+  <% } %>
 
-    <form method="POST" action="/login">
-        <label for="codeAcces">Code d'accès</label>
-        <input type="text" id="codeAcces" name="codeAcces" required autofocus>
+  <form method="POST" action="/e/<%= slug %>/login">
+    <label for="codeAcces">Code d'accès</label>
+    <input type="text" id="codeAcces" name="codeAcces" required autofocus>
 
-        <button type="submit">Se connecter</button>
-    </form>
+    <button type="submit" class="bouton bouton-principal bouton-pleine-largeur bouton-espace-haut">Se connecter</button>
+  </form>
 </div>
 
 <%- include('partials/foot') %>

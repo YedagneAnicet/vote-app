@@ -1,209 +1,206 @@
 <%- include('_head', { page: 'electeurs' }) %>
 
+<% if (typeof importes !== 'undefined' && importes) { %>
+  <div class="erreur" style="background: rgba(34,139,34,0.08); border-left-color: var(--vert); color: var(--vert);">
+    <%= importes %> électeur(s) importé(s) avec succès.
+  </div>
+<% } %>
+
 <div class="card">
-    <div class="admin-card-entete">
-        <div class="carte-titre">
-            <div class="carte-eyebrow">Gestion</div>
-            <h2>Électeurs</h2>
-            <p><%= electeurs.filter(e => e.aVote).length %> ayant voté sur <%= electeurs.length %> électeur(s) inscrit(s).</p>
-        </div>
-        <button type="button" class="bouton-ajouter" onclick="ouvrirAjoutElecteur()" aria-label="Ajouter un électeur">+</button>
+  <div class="admin-card-entete">
+    <div class="carte-titre">
+      <div class="carte-eyebrow">Gestion</div>
+      <h2>Électeurs</h2>
+      <p><%= electeurs.filter(e => e.aVote).length %> ayant voté (tour actif) sur <%= electeurs.length %> électeur(s) inscrit(s).</p>
     </div>
-
-    <input type="text" id="rechercheElecteur" class="admin-recherche" placeholder="Rechercher un nom ou un numéro de licence...">
-
-    <div class="tableau-propre-conteneur">
-        <table class="tableau-propre" id="tableauElecteurs">
-            <thead>
-            <tr>
-                <th>Électeur</th>
-                <th>Licence</th>
-                <th>Téléphone</th>
-                <th>Code</th>
-                <th>Statut</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <% electeurs.forEach(function(e) { %>
-                <tr>
-                    <td data-label="Électeur"><%= e.prenom %> <%= e.nom %></td>
-                    <td data-label="Licence"><%= e.numeroLicence %></td>
-                    <td data-label="Téléphone"><%= e.telephone || '—' %></td>
-                    <td data-label="Code">
-                        <span class="code-acces" id="code-<%= e.id %>"><%= e.codeAcces %></span>
-                        <button type="button" class="bouton-copier" onclick="copierCode('<%= e.id %>', this)">Copier</button>
-                    </td>
-                    <td data-label="Statut">
-                        <span class="badge <%= e.aVote ? 'badge-vert' : 'badge-gris' %>"><%= e.aVote ? 'A voté' : 'Pas encore' %></span>
-                    </td>
-                    <td data-label="">
-                        <button type="button" class="bouton-icone" title="Modifier"
-                                onclick='ouvrirModifElecteur(<%- JSON.stringify({id: e.id, numeroLicence: e.numeroLicence, nom: e.nom, prenom: e.prenom, telephone: e.telephone}) %>)'>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
-            <% }); %>
-            </tbody>
-        </table>
+    <% if (electeurs.length > 0) { %>
+    <div class="admin-candidat-actions">
+      <button type="button" class="bouton bouton-discret" onclick="ouvrirImportCsv()">Importer un CSV</button>
+      <a href="/admin/electeurs/messages.txt" class="bouton bouton-discret">Messages WhatsApp</a>
+      <button type="button" class="bouton bouton-rond" onclick="ouvrirAjoutElecteur()" aria-label="Ajouter un électeur">+</button>
     </div>
+    <% } %>
+  </div>
 
-    <div class="pagination" id="pagination"></div>
+  <% if (electeurs.length === 0) { %>
+    <p>Aucun électeur ajouté pour le moment.</p>
+    <div class="cellule-actions">
+      <button type="button" class="bouton bouton-principal bouton-auto" onclick="ouvrirAjoutElecteur()">Ajouter un électeur</button>
+      <button type="button" class="bouton bouton-discret" onclick="ouvrirImportCsv()">Importer un CSV</button>
+    </div>
+  <% } else { %>
+  <input type="text" id="rechercheElecteur" class="admin-recherche" placeholder="Rechercher un nom ou un numéro de licence...">
+
+  <div class="tableau-propre-conteneur">
+    <table class="tableau-propre" id="tableauElecteurs">
+      <thead><tr><th>Électeur</th><th>Licence</th><th>Téléphone</th><th>Code</th><th>Message</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        <% electeurs.forEach(function(e) { %>
+          <tr>
+            <td data-label="Électeur"><%= e.prenom %> <%= e.nom %></td>
+            <td data-label="Licence"><%= e.numeroLicence %></td>
+            <td data-label="Téléphone"><%= e.telephone || 'Non renseigné' %></td>
+            <td data-label="Code">
+              <div class="code-cellule">
+                <span class="code-acces" id="code-<%= e.id %>"><%= e.codeAcces %></span>
+                <div class="code-actions">
+                  <button type="button" class="bouton bouton-discret" onclick="copierCode('<%= e.id %>', this)">Copier</button>
+                  <% if (e.lienWhatsapp) { %>
+                    <a href="<%= e.lienWhatsapp %>" target="_blank" rel="noopener" class="bouton bouton-discret" onclick="marquerMessageEnvoye('<%= e.id %>')">WhatsApp</a>
+                  <% } %>
+                </div>
+              </div>
+            </td>
+            <td data-label="Message"><span class="badge <%= e.messageEnvoye ? 'badge-vert' : 'badge-gris' %>" id="statut-message-<%= e.id %>"><%= e.messageEnvoye ? 'Envoyé' : 'Non envoyé' %></span></td>
+            <td data-label="Statut"><span class="badge <%= e.aVote ? 'badge-vert' : 'badge-gris' %>"><%= e.aVote ? 'A voté' : 'Pas encore' %></span></td>
+            <td data-label="">
+              <button type="button" class="bouton bouton-icone" title="Modifier"
+                      onclick='ouvrirModifElecteur(<%- JSON.stringify({id: e.id, numeroLicence: e.numeroLicence, nom: e.nom, prenom: e.prenom, telephone: e.telephone}) %>)'>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination"></div>
+  <% } %>
+</div>
+
+<div class="modale-overlay" id="modaleImportCsv">
+  <div class="modale">
+    <div class="modale-titre">Importer un CSV d'électeurs</div>
+    <p class="modale-texte">
+      Format attendu (avec en-tête) : <code>numeroLicence,nom,prenom,dateNaissance,telephone</code>.
+      Un électeur déjà présent (même numéro de licence) est mis à jour sans que son code d'accès change.
+    </p>
+    <form method="POST" action="/admin/electeurs/import-csv" enctype="multipart/form-data">
+      <label for="fichierCsv">Fichier CSV</label>
+      <input type="file" id="fichierCsv" name="fichierCsv" accept=".csv,text/csv" required>
+      <div class="modale-actions">
+        <button type="submit" class="bouton bouton-principal bouton-pleine-largeur">Importer</button>
+        <button type="button" class="bouton bouton-secondaire bouton-pleine-largeur" onclick="fermerModaleImportCsv()">Annuler</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="modale-overlay" id="modaleElecteur">
-    <div class="modale">
-        <div class="modale-titre" id="modaleElecteurTitre">Ajouter un(e) électeur(trice)</div>
-        <p class="modale-texte" id="modaleElecteurHint">Un code d'accès à 6 chiffres est généré automatiquement.</p>
-        <form method="POST" id="formElecteur" action="/admin/electeurs">
-            <label for="eNumeroLicence">Numéro de licence</label>
-            <input type="text" id="eNumeroLicence" name="numeroLicence" required>
-
-            <label for="eNom">Nom</label>
-            <input type="text" id="eNom" name="nom" required>
-
-            <label for="ePrenom">Prénom</label>
-            <input type="text" id="ePrenom" name="prenom" required>
-
-            <label for="eDateNaissance">Date de naissance (AAAA-MM-JJ)</label>
-            <input type="text" id="eDateNaissance" name="dateNaissance" placeholder="2003-07-21">
-
-            <label for="eTelephone">Téléphone</label>
-            <input type="text" id="eTelephone" name="telephone" placeholder="+225...">
-
-            <div class="modale-actions">
-                <button type="submit" class="modale-confirmer">Enregistrer</button>
-                <button type="button" class="modale-annuler" onclick="fermerModaleElecteur()">Annuler</button>
-            </div>
-        </form>
-    </div>
+  <div class="modale">
+    <div class="modale-titre" id="modaleElecteurTitre">Ajouter un(e) électeur(trice)</div>
+    <p class="modale-texte" id="modaleElecteurHint">Un code d'accès à 6 chiffres est généré automatiquement.</p>
+    <form method="POST" id="formElecteur" action="/admin/electeurs">
+      <label for="eNumeroLicence">Numéro de licence</label>
+      <input type="text" id="eNumeroLicence" name="numeroLicence" required>
+      <label for="eNom">Nom</label>
+      <input type="text" id="eNom" name="nom" required>
+      <label for="ePrenom">Prénom</label>
+      <input type="text" id="ePrenom" name="prenom" required>
+      <label for="eDateNaissance">Date de naissance (AAAA-MM-JJ)</label>
+      <input type="text" id="eDateNaissance" name="dateNaissance" placeholder="2003-07-21">
+      <label for="eTelephone">Téléphone</label>
+      <input type="text" id="eTelephone" name="telephone" placeholder="+225...">
+      <div class="modale-actions">
+        <button type="submit" class="bouton bouton-principal bouton-pleine-largeur">Enregistrer</button>
+        <button type="button" class="bouton bouton-secondaire bouton-pleine-largeur" onclick="fermerModaleElecteur()">Annuler</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
-	function copierCode(id, bouton) {
-		var texte = document.getElementById('code-' + id).textContent;
-		navigator.clipboard.writeText(texte).then(function () {
-			var original = bouton.textContent;
-			bouton.textContent = 'Copié !';
-			setTimeout(function () {
-				bouton.textContent = original;
-			}, 1500);
-		});
-	}
+  function copierCode(id, bouton) {
+    var texte = document.getElementById('code-' + id).textContent;
+    navigator.clipboard.writeText(texte).then(function () {
+      var original = bouton.textContent;
+      bouton.textContent = 'Copié !';
+      setTimeout(function () { bouton.textContent = original; }, 1500);
+    });
+  }
 
-	var overlayElecteur = document.getElementById('modaleElecteur');
-	var formElecteur = document.getElementById('formElecteur');
-	var titreElecteur = document.getElementById('modaleElecteurTitre');
-	var hintElecteur = document.getElementById('modaleElecteurHint');
+  function marquerMessageEnvoye(id) {
+    fetch('/admin/electeurs/' + id + '/message-envoye', { method: 'POST' }).then(function () {
+      var badge = document.getElementById('statut-message-' + id);
+      if (badge) { badge.textContent = 'Envoyé'; badge.className = 'badge badge-vert'; }
+    });
+  }
 
-	function ouvrirAjoutElecteur() {
-		formElecteur.reset();
-		formElecteur.action = '/admin/electeurs';
-		titreElecteur.textContent = "Ajouter un(e) électeur(trice)";
-		hintElecteur.style.display = '';
-		overlayElecteur.classList.add('ouverte');
-	}
+  var overlayImportCsv = document.getElementById('modaleImportCsv');
+  function ouvrirImportCsv() { overlayImportCsv.classList.add('ouverte'); }
+  function fermerModaleImportCsv() { overlayImportCsv.classList.remove('ouverte'); }
+  overlayImportCsv.addEventListener('click', function (e) { if (e.target === overlayImportCsv) fermerModaleImportCsv(); });
 
-	function ouvrirModifElecteur(e) {
-		formElecteur.action = '/admin/electeurs/' + e.id;
-		titreElecteur.textContent = 'Modifier l\'électeur(trice)';
-		hintElecteur.style.display = 'none';
-		document.getElementById('eNumeroLicence').value = e.numeroLicence || '';
-		document.getElementById('eNom').value = e.nom || '';
-		document.getElementById('ePrenom').value = e.prenom || '';
-		document.getElementById('eTelephone').value = e.telephone || '';
-		overlayElecteur.classList.add('ouverte');
-	}
+  var overlayElecteur = document.getElementById('modaleElecteur');
+  var formElecteur = document.getElementById('formElecteur');
+  var titreElecteur = document.getElementById('modaleElecteurTitre');
+  var hintElecteur = document.getElementById('modaleElecteurHint');
 
-	function fermerModaleElecteur() {
-		overlayElecteur.classList.remove('ouverte');
-	}
+  function ouvrirAjoutElecteur() {
+    formElecteur.reset(); formElecteur.action = '/admin/electeurs';
+    titreElecteur.textContent = "Ajouter un(e) électeur(trice)";
+    hintElecteur.style.display = ''; overlayElecteur.classList.add('ouverte');
+  }
+  function ouvrirModifElecteur(e) {
+    formElecteur.action = '/admin/electeurs/' + e.id;
+    titreElecteur.textContent = 'Modifier l\'électeur(trice)';
+    hintElecteur.style.display = 'none';
+    document.getElementById('eNumeroLicence').value = e.numeroLicence || '';
+    document.getElementById('eNom').value = e.nom || '';
+    document.getElementById('ePrenom').value = e.prenom || '';
+    document.getElementById('eTelephone').value = e.telephone || '';
+    overlayElecteur.classList.add('ouverte');
+  }
+  function fermerModaleElecteur() { overlayElecteur.classList.remove('ouverte'); }
+  overlayElecteur.addEventListener('click', function (e) { if (e.target === overlayElecteur) fermerModaleElecteur(); });
 
-	overlayElecteur.addEventListener('click', function (e) {
-		if (e.target === overlayElecteur) fermerModaleElecteur();
-	});
-
-	// ─── Recherche + pagination combinées ───
-	(function () {
-		var TAILLE_PAGE = 10;
-		var toutesLesLignes = Array.prototype.slice.call(document.querySelectorAll('#tableauElecteurs tbody tr'));
-		var pageActuelle = 1;
-
-		function lignesFiltrees() {
-			var terme = document.getElementById('rechercheElecteur').value.toLowerCase();
-			if (!terme) return toutesLesLignes;
-			return toutesLesLignes.filter(function (ligne) {
-				return ligne.textContent.toLowerCase().includes(terme);
-			});
-		}
-
-		function afficher() {
-			var lignes = lignesFiltrees();
-			var totalPages = Math.max(1, Math.ceil(lignes.length / TAILLE_PAGE));
-			if (pageActuelle > totalPages) pageActuelle = totalPages;
-
-			toutesLesLignes.forEach(function (l) {
-				l.style.display = 'none';
-			});
-
-			var debut = (pageActuelle - 1) * TAILLE_PAGE;
-			lignes.slice(debut, debut + TAILLE_PAGE).forEach(function (l) {
-				l.style.display = '';
-			});
-
-			dessinerPagination(totalPages);
-		}
-
-		function dessinerPagination(totalPages) {
-			var conteneur = document.getElementById('pagination');
-			conteneur.innerHTML = '';
-			if (totalPages <= 1) return;
-
-			var boutonPrec = document.createElement('button');
-			boutonPrec.className = 'pagination-btn';
-			boutonPrec.textContent = '‹';
-			boutonPrec.disabled = pageActuelle === 1;
-			boutonPrec.onclick = function () {
-				pageActuelle--;
-				afficher();
-			};
-			conteneur.appendChild(boutonPrec);
-
-			for (var p = 1; p <= totalPages; p++) {
-				(function (p) {
-					var bouton = document.createElement('button');
-					bouton.className = 'pagination-btn' + (p === pageActuelle ? ' actif' : '');
-					bouton.textContent = p;
-					bouton.onclick = function () {
-						pageActuelle = p;
-						afficher();
-					};
-					conteneur.appendChild(bouton);
-				})(p);
-			}
-
-			var boutonSuiv = document.createElement('button');
-			boutonSuiv.className = 'pagination-btn';
-			boutonSuiv.textContent = '›';
-			boutonSuiv.disabled = pageActuelle === totalPages;
-			boutonSuiv.onclick = function () {
-				pageActuelle++;
-				afficher();
-			};
-			conteneur.appendChild(boutonSuiv);
-		}
-
-		document.getElementById('rechercheElecteur').addEventListener('input', function () {
-			pageActuelle = 1;
-			afficher();
-		});
-
-		afficher();
-	})();
+  (function () {
+    var inputRecherche = document.getElementById('rechercheElecteur');
+    if (!inputRecherche) return;
+    var TAILLE_PAGE = 10;
+    var toutesLesLignes = Array.prototype.slice.call(document.querySelectorAll('#tableauElecteurs tbody tr'));
+    var pageActuelle = 1;
+    function lignesFiltrees() {
+      var terme = document.getElementById('rechercheElecteur').value.toLowerCase();
+      if (!terme) return toutesLesLignes;
+      return toutesLesLignes.filter(function (ligne) { return ligne.textContent.toLowerCase().includes(terme); });
+    }
+    function afficher() {
+      var lignes = lignesFiltrees();
+      var totalPages = Math.max(1, Math.ceil(lignes.length / TAILLE_PAGE));
+      if (pageActuelle > totalPages) pageActuelle = totalPages;
+      toutesLesLignes.forEach(function (l) { l.style.display = 'none'; });
+      var debut = (pageActuelle - 1) * TAILLE_PAGE;
+      lignes.slice(debut, debut + TAILLE_PAGE).forEach(function (l) { l.style.display = ''; });
+      dessinerPagination(totalPages);
+    }
+    function dessinerPagination(totalPages) {
+      var conteneur = document.getElementById('pagination');
+      conteneur.innerHTML = '';
+      if (totalPages <= 1) return;
+      var boutonPrec = document.createElement('button');
+      boutonPrec.className = 'pagination-btn'; boutonPrec.textContent = '‹';
+      boutonPrec.disabled = pageActuelle === 1;
+      boutonPrec.onclick = function () { pageActuelle--; afficher(); };
+      conteneur.appendChild(boutonPrec);
+      for (var p = 1; p <= totalPages; p++) {
+        (function (p) {
+          var bouton = document.createElement('button');
+          bouton.className = 'pagination-btn' + (p === pageActuelle ? ' actif' : '');
+          bouton.textContent = p;
+          bouton.onclick = function () { pageActuelle = p; afficher(); };
+          conteneur.appendChild(bouton);
+        })(p);
+      }
+      var boutonSuiv = document.createElement('button');
+      boutonSuiv.className = 'pagination-btn'; boutonSuiv.textContent = '›';
+      boutonSuiv.disabled = pageActuelle === totalPages;
+      boutonSuiv.onclick = function () { pageActuelle++; afficher(); };
+      conteneur.appendChild(boutonSuiv);
+    }
+    inputRecherche.addEventListener('input', function () { pageActuelle = 1; afficher(); });
+    afficher();
+  })();
 </script>
 
 <%- include('_foot') %>

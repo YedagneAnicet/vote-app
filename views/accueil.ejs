@@ -1,0 +1,21 @@
+<%- include('partials/head') %>
+
+<div class="card">
+  <h2>Élections en cours</h2>
+  <p>Choisissez l'élection à laquelle vous souhaitez participer.</p>
+
+  <% if (elections.length === 0) { %>
+    <div class="tendance-vide">Aucune élection ouverte pour le moment.</div>
+  <% } else { %>
+    <div class="liste-elections">
+      <% elections.forEach(function(e) { %>
+        <a href="/e/<%= e.slug %>/login" class="election-carte">
+          <h3><%= e.titre %></h3>
+          <span class="election-fleche">→</span>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>
